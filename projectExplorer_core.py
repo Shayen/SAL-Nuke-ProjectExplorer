@@ -88,6 +88,7 @@ class ExplorerCore(object):
 
 	def openScript(self,scriptPath):
 		nuke.tprint("Openning... \"{}\"".format(scriptPath))
+		nuke.scriptOpen(scriptPath)
 
 	def saveIncrement(self, project, shot):
 
@@ -101,7 +102,7 @@ class ExplorerCore(object):
 
 		nuke.scriptSaveAs(savePath)
 		nuke.tprint("Save file : %s" %(savePath))
-
+		return savePath
 
 def get_lastversion(shotPath):
 
@@ -144,39 +145,11 @@ def _replaceData( data ,project, shot, version= ''):
 
 	return data
 
-def getThumbnail( shotDirPath, filename = '', perfile=False):
-	""" 
-	Get nuke thumbnail 
+def thumbnailPath(filePath):
+	thumbnailPath = os.path.dirname(filePath)
+	thumbnailPath += '/thumbnails/' + os.path.splitext(os.path.basename(filePath))[0] + '.png'
 
-	Note : If version is '', It will choose last version's thumbnail.
-	"""
-
-	thumbnail_path = '%s/%s'%(shotDirPath, '_thumbnail')
-	missThumbnail_path  = modulepath + '/thumbnail_miss.jpg'
-
-	# check _thumbnail path exists
-	if not os.path.exists(thumbnail_path):
-		return missThumbnail_path
-
-	# if not have any image in Dir, Return : missThumbnail
-	all_thumbnail_files = os.listdir( '%s/%s'%( shotDirPath, '_thumbnail') )
-	if all_thumbnail_files == []:
-		return missThumbnail_path
-
-	# Get per version.
-	if perfile:
-		if os.path.exists(thumbnail_path+'/'+filename):
-			thumbnail_path = thumbnail_path+'/'+filename
-		else:
-			print (thumbnail_path + ' : not exists')
-			return missThumbnail_path
-
-	# Get per shot [Return lasted version]
-	else:
-		thumbnail_file = sorted( all_thumbnail_files )[-1] 
-		thumbnail_path += '/%s'%(thumbnail_file)
-
-	return thumbnail_path
+	return thumbnailPath
 
 def saveFrame(thumbnailPath):
 	viewer 		= nuke.activeViewer()

@@ -19,6 +19,10 @@ core = projectExplorer_core.ExplorerCore()
 
 currentDir = os.path.dirname(__file__).replace("\\", '/')
 
+# TODO: Right click menu, Including Open in explorer
+# Create new shot button
+# Test in real environment [from Klong]
+
 class ExplorerWindow(QMainWindow):
 
 	def __init__(self, parent = None):
@@ -76,11 +80,18 @@ class ExplorerWindow(QMainWindow):
 	def initConnect(self):
 		self.headWidget.projectComboBox.activated.connect(lambda : self.fileWidget.setProject(self.currentProject))
 		self.saveButton.clicked.connect(self.save_OnClicked)
+		self.openButton.clicked.connect(self.open_onClicked)
 		self.fileWidget.shotListWidget.itemClicked.connect(lambda : self.fileWidget.updateFileList(self.currentProject))
 
 	def save_OnClicked(self):
-		core.saveIncrement(self.currentProject,self.fileWidget.currentShot)
+		savePath = core.saveIncrement(self.currentProject, self.fileWidget.currentShot)
+
+		projectExplorer_core.saveFrame(thumbnailPath = projectExplorer_core.thumbnailPath(savePath))
 		self.fileWidget.updateFileList(self.currentProject)
+
+	def open_onClicked(self):
+		print self.fileWidget.currentFile
+		core.openScript(self.fileWidget.currentFile)
 
 	def callPrefWindow(self):
 		print "callPrefWindow"
@@ -111,15 +122,19 @@ class thumbnailWidget(QWidget):
 
 		self.setLayout(mainLayout)
 
-		self.thumbnail.setPixmap(self.placeHolder_pixmap)
+		self.setThumbnail(self.placeHolder_path)
 
 	def setThumbnail(self, imagepath):
 
 		if not os.path.exists(imagepath):
 			imagepath = placeHolder_path
 
-		pixmap =QPixmap(imagepath)
-		self.thumbnail.setPixmap(imagepath)
+		# pixmap =QPixmap(imagepath)
+		
+		img = QImage(imagepath)
+		scaled_percent = 280.0 / max(img.width(),img.height())
+		pixmap = QPixmap(img).scaled(QSize(img.width()*scaled_percent,img.height()*scaled_percent, mode = Qt.SmoothTransformation))
+		self.thumbnail.setPixmap(pixmap)
 
 class HeaderWidget(QWidget):
 
@@ -188,9 +203,20 @@ class fileWidget(QWidget):
 
 
 		self.setupUI()
+		self.initConnect()
+
+	def initConnect(self):
+		self.fileListWidget.itemClicked.connect(self.setThumbnail)
 
 	def setupUI(self):
 		self.SequenceLayout.setEnabled(False)
+
+	def setThumbnail(self):
+		thumbnailPath = projectExplorer_core.thumbnailPath(self.currentFile)
+		if not os.path.exists(thumbnailPath):
+			thumbnailPath = self.thumbnailWidget.placeHolder_path
+
+		self.thumbnailWidget.setThumbnail(thumbnailPath)
 
 	def setProject(self, projectName):
 		self.fileListWidget.clear()
@@ -200,7 +226,13 @@ class fileWidget(QWidget):
 
 	def updateFileList(self, projectName):
 		self.fileListWidget.clear()
-		self.fileListWidget.addItems(core.listVersion(projectName, self.currentShot))
+
+		for version in core.listVersion(projectName, self.currentShot) :
+			version_path = projectExplorer_core._replaceData(core.getConfigData("PATH_TEMPLATE"), projectName, self.currentShot)
+			item = QListWidgetItem(version)
+			item.setData(Qt.UserRole,version_path.replace('${_SCRIPTNAME}', version))
+
+			self.fileListWidget.addItem(item)
 
 	@property
 	def currentShot(self):
@@ -208,7 +240,7 @@ class fileWidget(QWidget):
 
 	@property
 	def currentFile(self):
-		return self.fileListWidget.currentItem().text()
+		return self.fileListWidget.currentItem().data( Qt.UserRole )
 
 def openExplorer(filePath):
 	"""Open File explorer after finish."""
@@ -216,13 +248,13 @@ def openExplorer(filePath):
 	subprocess.Popen('explorer \/select,\"%s\"' % win_publishPath)
 
 def _nuke_main_window():
-    """Returns Nuke's main window"""
-    for obj in QApplication.instance().topLevelWidgets():
-        if (obj.inherits('QMainWindow') and
-                obj.metaObject().className() == 'Foundry::UI::DockMainWindow'):
-            return obj
-    else:
-        raise RuntimeError('Could not find DockMainWindow instance')
+	"""Returns Nuke's main window"""
+	for obj in QApplication.instance().topLevelWidgets():
+		if (obj.inherits('QMainWindow') and
+				obj.metaObject().className() == 'Foundry::UI::DockMainWindow'):
+			return obj
+	else:
+		raise RuntimeError('Could not find DockMainWindow instance')
 
 def main ():
 	window = ExplorerWindow( parent = _nuke_main_window() )
