@@ -6,7 +6,7 @@ import shutil
 
 import nuke
 
-from source import lucidity
+# from source import lucidity
 
 currentDir = os.path.dirname(__file__).replace("\\", '/')
 configPath = "H:/programming/Python/nukeProjectExplorer/configure.conf"
