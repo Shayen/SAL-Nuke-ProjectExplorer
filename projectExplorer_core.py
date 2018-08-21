@@ -40,7 +40,6 @@ def read_configFile(file_path):
 
 	return data
 
-
 class ExplorerCore(object):
 
 	def __init__(self):
@@ -125,7 +124,7 @@ def get_lastversion(shotPath):
 
 	return max(version) + 1
 
-def _replaceData( data ,project, shot, version= ''):
+def _replaceData( data ,project, shot = '', version= ''):
 
 	'''
 	_PROJECTSCODE
