@@ -109,6 +109,7 @@ class ExplorerWindow(QMainWindow):
 		self.saveButton.clicked.connect(self.save_OnClicked)
 		self.openButton.clicked.connect(self.open_onClicked)
 		self.fileWidget.shotListWidget.itemClicked.connect(self.fileWidget.updateFileList)
+		self.fileWidget.fileListWidget.itemDoubleClicked.connect(self.open_onClicked)
 
 	def closeEvent(self, event):
 		print "Saving current state data ..."
@@ -363,16 +364,28 @@ class fileWidget(QWidget):
 		menu_rename = self.listMenu.addAction("Rename")
 		menu_duplicate = self.listMenu.addAction("Duplicate")
 		self.listMenu.addSeparator()
+		menu_updatethumbnail = self.listMenu.addAction("Update Thumbnail")
 		menu_openExplorer = self.listMenu.addAction("Open Containing Folder ...")
 
 		menu_openExplorer.triggered.connect(lambda : openExplorer(os.path.dirname(self.currentFile)))
 		menu_copyNameItem.triggered.connect(lambda : copyTextToClipboard(os.path.basename(self.currentFile)))
 		menu_copyPathItem.triggered.connect(lambda : copyTextToClipboard(self.currentFile))
 		menu_rename.triggered.connect(lambda : self.__renameScript(self.currentFile))
+		menu_updatethumbnail.triggered.connect(self.__menu_updatethumbnail_onCLicked)
 		menu_duplicate.triggered.connect(lambda : self.__duplicateScript(self.currentFile))
 
 		parentPosition = self.fileListWidget.mapToGlobal(QPos)
 		self.listMenu.exec_(parentPosition)
+
+	def __menu_updatethumbnail_onCLicked(self):
+		msgBox = QMessageBox().question(self, "Confirm Dialog", "Do you want to update thumbnail?",
+										QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Cancel)
+
+		if msgBox == QMessageBox.Ok:
+			projectExplorer_core.saveFrame(thumbnailPath=projectExplorer_core.thumbnailPath(self.currentFile))
+		else:
+			return
+		self.setThumbnail()
 
 	@property
 	def currentShot(self):
