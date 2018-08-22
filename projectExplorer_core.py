@@ -9,7 +9,7 @@ import nuke
 # from source import lucidity
 
 currentDir = os.path.dirname(__file__).replace("\\", '/')
-configPath = "H:/programming/Python/nukeProjectExplorer/configure.conf"
+configPath = currentDir + "/configure.conf"
 
 def read_configFile(file_path):
 
