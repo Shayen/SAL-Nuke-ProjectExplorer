@@ -21,8 +21,34 @@ core = projectExplorer_core.ExplorerCore()
 
 currentDir = os.path.dirname(__file__).replace("\\", '/')
 
-__VERISON__ = "1.0"
-# All main functions working
+__VERISON__ = "1.2"
+# V1.0 All main functions working
+# V1.1 Fix Wrong configure path
+# V1.2 Support shot's sub-folder
+
+class PreferenceWindow(QDialog) :
+
+	def __init__(self, parent = None):
+		super (PreferenceWindow, self).__init__(parent)
+
+		mainLayout = QGridLayout()
+
+		formLayout = QFormLayout()
+		self.rootPath_input = QLineEdit(self)
+		self.rootPath_input.setText(core.configData['EXT_VAR']['ROOT'])
+		formLayout.addRow("Root path:", self.rootPath_input)
+		
+		self.submitbtn = QPushButton(self)
+		self.submitbtn.setText("Save")
+		mainLayout.addLayout( formLayout,0,0, columnSpan = 3)
+		mainLayout.addWidget(self.submitbtn, 1,0)		
+		self.setLayout(mainLayout)
+
+		self.submitbtn.clicked.connect(self.submit_onClicked)
+
+	def submit_onClicked(self, *args):
+		projectExplorer_core.updatePref(data = {"ROOT":self.rootPath_input.text()})
+		self.close()
 
 class ExplorerWindow(QMainWindow):
 
@@ -135,13 +161,16 @@ class ExplorerWindow(QMainWindow):
 		core.openScript(self.fileWidget.currentFile)
 
 	def callPrefWindow(self):
-		print "callPrefWindow"
+		prefWin = PreferenceWindow(parent = self)
+		prefWin.exec_()
 
 	def callDocumentLink(self):
 		print "callDocumentLink"
+		QDesktopServices.openUrl(QUrl('https://github.com/Shayen/SAL-Nuke-ProjectExplorer'))
 
 	def callGithubLink(self):
 		print "callGithubLink"
+		QDesktopServices.openUrl(QUrl('https://github.com/Shayen/SAL-Nuke-ProjectExplorer'))
 
 	@property
 	def currentProject(self):
@@ -279,6 +308,8 @@ class fileWidget(QWidget):
 			version_path = projectExplorer_core._replaceData(core.getConfigData("PATH_TEMPLATE"), self.project, self.currentShot)
 
 			item = QListWidgetItem(self.fileListWidget)
+			if version.endswith(".nk"):
+				item.setIcon(QIcon(currentDir + "/image/NukeDoc16.png"))
 			widgetitem = fileListItem(version)
 			widgetitem.setData(version_path.replace('${_SCRIPTNAME}', version))
 			item.setSizeHint(widgetitem.sizeHint())
@@ -415,10 +446,11 @@ class fileListItem(QWidget):
 		mainLayout.addItem(verticalSpacer)
 		mainLayout.addWidget(self.itemModified)
 		mainLayout.setStretch(1,1)
-		mainLayout.setContentsMargins(10,2,10,2)
+		mainLayout.setContentsMargins(1,6,10,6)
 		self.setLayout(mainLayout)
 
 		self.setText(text)
+		self.setStyleSheet("font-size: 10pt;")
 
 	def setText(self, text):
 		self.itemname.setText(text)

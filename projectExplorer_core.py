@@ -4,41 +4,52 @@ import errno
 import json
 import shutil
 
+# Import third-party
+from source import yaml
+
 import nuke
 
 # from source import lucidity
 
 currentDir = os.path.dirname(__file__).replace("\\", '/')
-configPath = currentDir + "/configure.conf"
+configPath = currentDir + "/configure.yml"
+thumbnailFoldername = '.thumbnails'
+thumbnail_ext = 'png'
 
 def read_configFile(file_path):
 
+	if not os.path.exists(file_path):
+		print("config file not exists : %s"%file_path)
+		templateconfigpath = configPath.replace('.yml', '_template.yml')
+		if os.path.exists(templateconfigpath) :
+			shutil.copy2(templateconfigpath, configPath)
+		else:
+			return False
+
 	with open(file_path, "r") as f :
-		json_string = f.read()
+		data = yaml.safe_load(f)
 	f.close()
 
-	try:
-		# Remove commens from JSON (makes sample config options easier)
-		regex = r'\s*(#|\/{2}).*$'
-		regex_inline = r'(:?(?:\s)*([A-Za-z\d\.{}]*)|((?<=\").*\"),?)(?:\s)*(((#|(\/{2})).*)|)$'
-		lines = json_string.split('\n')
-
-		for index, line in enumerate(lines):
-			if re.search(regex, line):
-				if re.search(r'^' + regex, line, re.IGNORECASE):
-					lines[index] = ""
-				elif re.search(regex_inline, line):
-					lines[index] = re.sub(regex_inline, r'\1', line)
-
-		data = json.loads('\n'.join(lines))
-
-	except ValueError as e:
-		raise IOError(file_path)
-
-	except Exception as e:
-		raise e
-
 	return data
+
+def updatePref(data):
+
+	with open(configPath, "r") as f :
+		conf_data = f.read()
+	f.close()
+
+	result = []
+	for key, value in data.items():
+		for line in conf_data.splitlines():
+			if key +':' in line :
+				line = line.split(key+ ":")[0] + "%s: \"%s\""%(key ,value)
+
+			result.append(line)
+
+	with open(configPath, "w") as f :
+		f.write('\n'.join(result))
+	f.close()
+
 
 class ExplorerCore(object):
 
@@ -67,7 +78,7 @@ class ExplorerCore(object):
 			nuke.tprint("ERROR : Path not found \"%s\""%projectPath)
 			return []
 
-		return [item for item in os.listdir(projectPath) if os.path.isdir(projectPath)]
+		return [item for item in os.listdir(projectPath) if os.path.isdir("%s/%s"%(projectPath, item))]
 
 	def listShots(self,projectname):
 		shotPath = self.getConfigData('PATH_TEMPLATE').split("${_SHOTSNAME}")[0]
@@ -77,7 +88,18 @@ class ExplorerCore(object):
 			nuke.tprint("ERROR : Path not found \"%s\""%shotPath)
 			return []
 
-		return [item for item in os.listdir(shotPath) if os.path.isdir(shotPath)]
+		result = []
+		for shot in os.listdir(shotPath):
+			shotfullpath = "%s/%s"%(shotPath, shot)
+			if os.path.isdir(shotfullpath) and shot != thumbnailFoldername:
+				result.append(shot)
+				subfolder = ["%s/%s"%(shot,sf) for sf in os.listdir(shotfullpath) \
+									if os.path.isdir("%s/%s"%(shotfullpath, sf)) \
+									and sf != thumbnailFoldername ]
+				if subfolder :
+					result += subfolder
+
+		return result
 
 	def listVersion(self, project, shot):
 		savePath = _replaceData(self.getConfigData("PATH_TEMPLATE"), project, shot)
@@ -96,7 +118,7 @@ class ExplorerCore(object):
 			return False
 
 		savePath = _replaceData(self.getConfigData("PATH_TEMPLATE"), project, shot)
-		filename = _replaceData(self.getConfigData("SCRIPTNAME_TEMPLATE"), project, shot, get_lastversion(savePath))
+		filename = os.path.basename(_replaceData(self.getConfigData("SCRIPTNAME_TEMPLATE"), project, shot, get_lastversion(savePath)))
 		savePath = savePath.replace("${_SCRIPTNAME}", filename)
 
 		nuke.scriptSaveAs(savePath)
@@ -146,7 +168,8 @@ def _replaceData( data ,project, shot = '', version= ''):
 
 def thumbnailPath(filePath):
 	thumbnailPath = os.path.dirname(filePath)
-	thumbnailPath += '/thumbnails/' + os.path.splitext(os.path.basename(filePath))[0] + '.png'
+	name = os.path.splitext(os.path.basename(filePath))[0]
+	thumbnailPath += '/%s/%s.%s'%(thumbnailFoldername, name, thumbnail_ext)
 
 	return thumbnailPath
 
@@ -195,4 +218,5 @@ def saveFrame(thumbnailPath):
 		nuke.tprint(str(e))
 
 if __name__ == '__main__':
-	print listProjects()
+	# print listProjects()
+	print read_configFile("configure.conf")
