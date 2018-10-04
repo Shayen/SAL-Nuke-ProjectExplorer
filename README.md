@@ -1,6 +1,6 @@
 # Nuke Project Explorer
 
-![Tool's Window](image/nuke01.png)
+![Tool's Window](image/Nuke01.png)
 
 ## Installation
 - Extract all scripts to ```%userprofile%/.nuke/nukeExplorer```
