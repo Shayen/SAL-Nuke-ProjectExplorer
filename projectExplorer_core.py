@@ -40,6 +40,7 @@ def updatePref(data):
 
 	result = []
 	for key, value in data.items():
+		value = value.replace('\\', '/')
 		for line in conf_data.splitlines():
 			if key +':' in line :
 				line = line.split(key+ ":")[0] + "%s: \"%s\""%(key ,value)
