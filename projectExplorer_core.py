@@ -143,6 +143,9 @@ def get_lastversion(shotPath):
 
 	else :
 		return 1
+		
+	if not version:
+		return 1
 
 	return max(version) + 1
 
